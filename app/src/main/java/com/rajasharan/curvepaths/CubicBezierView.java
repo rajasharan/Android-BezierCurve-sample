@@ -22,7 +22,7 @@ import android.view.animation.DecelerateInterpolator;
  * Created by rajasharan on 7/26/15.
  */
 public class CubicBezierView extends View implements Animator.AnimatorListener {
-    private static final String TAG = "CubicBeizerView";
+    private static final String TAG = "CubicBezierView";
     private static final int MAX_COUNT = 4;
 
     private SparseArray<Point> mTouches;
@@ -67,7 +67,7 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
         mCurvePaint.setARGB(128, 128, 128, 128);
 
         PropertyValuesHolder pvhAlpha = PropertyValuesHolder.ofInt("paintAlpha", 255, 0);
-        PropertyValuesHolder pvhRadius = PropertyValuesHolder.ofFloat("radius", 0f, 2f);
+        PropertyValuesHolder pvhRadius = PropertyValuesHolder.ofFloat("radius", 0f, 4f);
         mAnim = ObjectAnimator.ofPropertyValuesHolder(this, pvhAlpha, pvhRadius);
         mAnim.setDuration(500);
         mAnim.setInterpolator(new DecelerateInterpolator(2f));
@@ -90,7 +90,7 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
     private void setRadius(float r) {
         if (mCurrentTouchIndex != -1) {
             mAnimatedRadius[mCurrentTouchIndex] = mRadius * r;
-            invalidateTouch();
+            invalidateTouchRipple();
         }
     }
 
@@ -127,13 +127,13 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
         if (p3 != null && p2 != null && p1 != null && p0 != null) {
             mPath.rewind();
             mPath.moveTo(p0.x, p0.y);
-            mPath.cubicTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+            mPath.cubicTo(p2.x, p2.y, p3.x, p3.y, p1.x, p1.y);
             canvas.drawPath(mPath, mCurvePaint);
         }
         else if (p2 != null && p1 != null && p0 != null) {
             mPath.rewind();
             mPath.moveTo(p0.x, p0.y);
-            mPath.quadTo(p1.x, p1.y, p2.x, p2.y);
+            mPath.quadTo(p2.x, p2.y, p1.x, p1.y);
             canvas.drawPath(mPath, mCurvePaint);
         }
         else if (p1 != null && p0 != null) {
@@ -146,33 +146,36 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
-
         int action = event.getActionMasked();
-        int index = event.getActionIndex();
-        int pointerId = event.getPointerId(index);
+        int pointerIndex = event.getActionIndex();
+        int pointerId = event.getPointerId(pointerIndex);
+
+        int xp = (int) event.getX(pointerIndex);
+        int yp = (int) event.getY(pointerIndex);
 
         switch (action) {
             case MotionEvent.ACTION_DOWN: {
-                registerTouch(x, y, pointerId);
+                registerTouch(xp, yp, pointerId);
                 invalidate();
                 //invalidateTouch(x, y);
                 return true;
             }
             case MotionEvent.ACTION_MOVE: {
-                Point prev = mTouches.get(mCurrentTouchIndex);
-                int slop = mViewConfigs.getScaledTouchSlop();
-                if (Math.abs(prev.x - x) > slop || Math.abs(prev.y - y) > slop) {
-                    //Log.d(TAG, String.format("pointerId, pointerIndex: %d, %d", pointerId, index));
-                    updateTouch(x, y, pointerId);
+                for (int i=0; i<event.getPointerCount(); i++) {
+                    pointerIndex = i;
+                    pointerId = event.getPointerId(pointerIndex);
+                    xp = (int) event.getX(pointerIndex);
+                    yp = (int) event.getY(pointerIndex);
+                    updateTouch(xp, yp, pointerId);
                     invalidate();
-                    //invalidateTouch(x, y);
-                    //invalidateTouch(prev.x, prev.y);
-                    return true;
                 }
+                return true;
             }
             case MotionEvent.ACTION_POINTER_DOWN: {
+                //Log.d(TAG, String.format("pointerId, pointerIndex: %d,%d: (%d,%d)", pointerId, pointerIndex, xp, yp));
+                registerTouch(xp, yp, pointerId);
+                invalidate();
+                return true;
             }
             case MotionEvent.ACTION_POINTER_UP: {
             }
@@ -181,7 +184,8 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
             case MotionEvent.ACTION_CANCEL: {
             }
         }
-        return super.onTouchEvent(event);
+        return true;
+        //return super.onTouchEvent(event);
     }
 
     private void registerTouch(int x, int y, int pointerId) {
@@ -190,12 +194,9 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
             return;
         }
         if (pointerId < MAX_COUNT) {
-            if (pointerId == 0  && mTouches.size() == MAX_COUNT) {
-                mTouches.clear();
-            }
             mTouches.put(pointerId, new Point(x, y));
             mCurrentTouchIndex = pointerId;
-            startTouchAnimation();
+            //startTouchAnimation();
         }
     }
 
@@ -221,8 +222,8 @@ public class CubicBezierView extends View implements Animator.AnimatorListener {
         mTouches.put(mCurrentTouchIndex, new Point(x, y));
     }
 
-    private void invalidateTouch() {
-        int radius = (int) mRadius * 2;
+    private void invalidateTouchRipple() {
+        int radius = (int) mRadius * 4;
         Point p = mTouches.get(mCurrentTouchIndex);
         if (p == null) {
             return;
