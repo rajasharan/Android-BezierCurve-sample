@@ -68,7 +68,8 @@ public class SpringView extends View implements Animator.AnimatorListener {
 
         mCurvePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mCurvePaint.setStyle(Paint.Style.STROKE);
-        mCurvePaint.setARGB(128, 128, 128, 128);
+        mCurvePaint.setStrokeWidth(5.0f);
+        mCurvePaint.setColor(Color.GRAY);
 
         PropertyValuesHolder pvhAlpha = PropertyValuesHolder.ofInt("paintAlpha", 255, 0);
         PropertyValuesHolder pvhRadius = PropertyValuesHolder.ofFloat("radius", 0f, 4f);
